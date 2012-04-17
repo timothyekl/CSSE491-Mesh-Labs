@@ -1,7 +1,7 @@
 # CSSE491 (Mesh Networking) Labs
 
-This folder contains the revised labs for CSSE376 as of spring quarter
-2012. All labs were created by Tim Ekl.
+This folder contains the revised labs for CSSE491 (Mesh Networking) 
+as of spring quarter 2012. All labs were created by Tim Ekl.
 
 These labs require:
 
