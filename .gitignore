@@ -1,0 +1,13 @@
+# LaTeX
+*.log
+*.out
+*.pdf
+*.pyg
+*.synctex.gz
+*.aux
+
+# Code
+*.zip
+
+# Mac OS X
+.DS_Store

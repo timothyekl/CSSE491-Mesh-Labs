@@ -1,0 +1,435 @@
+% This lab is a BEAST.
+%
+% ...I love it.
+
+\documentclass{article}
+
+\newcommand{\labduedate}{at the end of Week 2}
+
+\input{../common/header}
+
+\pagestyle{fancy}
+\headheight 24pt
+\begin{document}
+
+\chead{\textcolor{Gray}{CSSE491 -- Mesh Networking Lab Assignment}}
+\headsep = 24pt
+
+\begin{center}
+{ \large
+\textbf{Lab \labnumber: \longproductname} \\
+\textbf{nesC}
+}
+\end{center}
+
+\subsection*{Objective}
+This lab is meant to give an introduction to nesC, the language used to program TinyOS-compatible mesh motes. nesC is the language that we will be working in for the remainder of the course; as such, it is important that you gain a thorough understanding in this lab.
+
+\subsection*{Lab format}
+The lab alternates between guided work and independent programming sections. It begins with an introduction to the nesC programming language, followed by an analysis of a sample application provided to users. Finally, the lab asks that you modify a small program and run it on your own.
+
+\subsection*{Required materials}
+For this lab, you will need:
+
+\begin{itemize*}
+\item The configured Windows XP SP3 system from Lab 0
+\item A MIB520 control board
+\item At least three IRIS motes
+\end{itemize*}
+
+\subsection*{Grading rubric}
+\begin{tabular}{p{5.5in} r}
+Questions 1-20 are worth \textbf{2} points each. & $20 \times 2 = 40$ \\
+Tasks 1 and 2 are worth \textbf{5} points each. & $2 \times 5 = 10$ \\
+Task 3 is worth \textbf{20} points. & $1 \times 20 = 20$ \\
+Task 4 is worth \textbf{10} points. & $1 \times 10 = 10$ \\
+Task 5 is worth \textbf{30} points. & $1 \times 30 = 30$ \\ \hline
+& \textbf{110} points
+\end{tabular}
+
+\subsection*{Due date}
+The lab is due \textcolor{red}{\textbf{\labduedate}}.
+
+\input{../common/turnin}
+
+\subsection*{A Little Background}
+
+This lab is the first major introduction to the nesC programming language for TinyOS-compatible motes, such as the IRIS motes you have. When we say ``major,'' we're not kidding: this lab is intended to take you from zero nesC knowledge all the way up to writing your own full modules almost from scratch. The lab may take more than three hours to read through and complete. Please consider starting early.
+
+Most of the work in this lab is based on the provided sample programs CountSend and CountReceive. The basic idea of these programs is this:
+
+\begin{itemize*}
+\item \textbf{CountSend} implements a basic counter starting at 1. It increments every 250 milliseconds, and will always display the least significant three bits of its count on its mote's LEDs. Furthermore, it sends its count over the wireless radio every time the count changes.
+\item \textbf{CountReceive} has no internal counting or timer of its own; instead, it listens over the air for integer messages. Whenever it receives an integer, it displays the least significant three bits of the number on its mote's LEDs.
+\end{itemize*}
+
+Together, these two apps can demonstrate transmission of data between motes, as well as basic LED display. We'll be using these apps to develop more advanced functionality. Remember that from this point, the lab will show any code snippets in \verb!monospace font!, and will prefix Cygwin shell commands with a dollar sign (\verb!$!). You shouldn't type the dollar sign -- it just serves to distinguish from the nesC code snippets that will appear later.
+
+\task{5}{Install CountSend}
+
+At this point, we'll start work by installing and testing the CountSend and CountReceive programs. Connect your MIB520 control board to your Windows XP machine and open a Cygwin shell. Make sure that you have a mote connected to the control board and ready for programming; double-check that its power switch is in the Off position. At the shell, type:
+
+\begin{verbatim}
+$ cd /opt/MoteWorks/apps/general/CountSend
+$ make iris install,0 mib520,com3
+\end{verbatim}
+
+Before we continue, let's discuss that \verb!make! command a little. We know from lab 0 that it compiles a nesC program and flashes it to an IRIS mote; however, it's composed of a number of different components, each of which influences the behavior of the \verb!make! program.
+
+\begin{itemize*}
+\item \verb!make! is a standard GNU program that simplifies the repeated compilation of a collection of code. You are probably familiar with \verb!make! already.
+\item \verb!iris! specifies the \textbf{target architecture} for which we are compiling our nesC program. Your MoteWorks installation actually ships with support for several different target architectures, each representing a different chipset from a different manufacturer. Since we are working with IRIS motes, we specify the \verb!iris! architecture.
+\item \verb!install,0! specifies both the \textbf{post-build action} and \textbf{mote ID}. In this case, we are specifying that we want to flash the app onto the mote after it is built, and that the mote should receive network ID 0. You can speed up some of this process by specifying \verb!reinstall! instead of \verb!install! if the program is already built how you want it; however, in most cases it is safer just to run \verb!install!. If you have multiple motes that will communicate over the air, it's generally a good idea to increment the mote ID for each individual mote that you're installing to.
+\item \verb!mib520,com3! specifies both the \textbf{control board type} and \textbf{serial port} that you are using for mote configuration. In this case, we have a MIB520 control board configured on serial port COM3. The serial port is autodetected during the installation process; you may have to change it from the instructions if your configuration is different. See the Device Manager to find your serial ports.
+\end{itemize*}
+
+If you are successful, you should see the lights on the mote begin to flash in a predictable counting pattern. At this point, you can disconnect this mote and turn it on; you should see its lights flash in the same pattern after it is disconnected and powered up individually. This indicates a successful flash of the CountSend program.
+
+\question{2} What are the three things that a mote running CountSend does every 250 milliseconds?
+
+\question{2} Write the \verb!make! commands for an installation using (a) the first IRIS mote on a MIB520 board configured on serial port COM5 and (b) the second MicaZ mote in a network being flashed from a MIB600 board on serial port COM3.
+
+\task{5}{Install CountReceive}
+
+Now you have a mote running CountSend, but what is it sending to? We need a second mote running CountReceive to fully demonstrate the networked nature of the motes. Hook up a second mote to your MIB520 control board, and in your Cygwin shell, type:
+
+\begin{verbatim}
+$ cd ../CountReceive
+$ make iris install,1 mib520,com3
+\end{verbatim}
+
+As the CountReceive program runs, you should see the second mote's LEDs light up to match the first mote's LEDs. Detach the second mote from the control board and power it up individually. If both motes' lights remain in sync, congratulations! You've successfully run the CountSend/CountReceive pair of apps.
+
+\question{2} What changed in this \verb!make! command from the command we used above to install CountSend? Why did this change occur?
+
+\question{2} Which mote is using a hardware timer: the first or the second?
+
+\question{2} With a partner, have each person take a single mote and walk in opposite directions. When does the second mote start to lose sync with the first? What happens if one of you leaves the classroom and comes back in?
+
+\question{2} Configure a third mote with CountReceive. What node number should it have? Do you think there is a limit on the number of motes that can be running CountReceive at the same time?
+
+\question{2} What do you think will happen if you run CountSend on two motes at the same time and CountReceive on a third? Try it now.
+
+\subsection*{A Little Analysis}
+
+Now we've seen how CountSend and CountReceive work together. But what's going on under the hood? Let's dig into the code a little bit.
+
+Despite its name, nesC is not a C dialect; rather, it borrows ideas from C pretty heavily, but is its own independent language. At the top level, nesC modules deal with three primary kinds of code block: \textbf{interfaces}, \textbf{configurations}, and \textbf{implementations}. These three each have their own independent role to play in nesC programs:
+
+\begin{itemize*}
+\item \textbf{Interface} blocks define logical groups of methods that share common purposes or goals, much like standard C header files. A very common interface is the \verb!StdControl! interface, which provides \verb!start()! and \verb!stop()! methods. Interfaces are declared outside of modules.
+\item \textbf{Configuration} blocks declare how modules expose interfaces. A module is much what it sounds like: it is a basic building block of code that interacts with others, similar to a class in Java.
+\item \textbf{Implementation} blocks complete the definition of modules by providing method bodies for the interfaces declared for that module. Together, a configuration and an implementation form a complete module. Implementations can either declare method bodies directly for interface methods, or they can forward interface implementations to other modules.
+\end{itemize*}
+
+With that understanding, let's look at the entire body of the CountReceive program:
+
+\begin{minted}{nesc}
+configuration RfmToLeds {
+}
+implementation {
+    components Main, RfmToInt, IntToLeds;
+
+    Main.StdControl -> IntToLeds.StdControl;
+    Main.StdControl -> RfmToInt.StdControl;
+    RfmToInt.IntOutput -> IntToLeds.IntOutput;
+}
+\end{minted}
+
+That's it. There are a couple notable things about this particular program:
+
+\begin{itemize*}
+\item There are \textbf{no interfaces defined}; no new methods are introduced in this file.
+\item The module \verb!RfmToLeds! has \textbf{no externally exposed interfaces}; other components can't get data in or out of this module.
+\item There are \textbf{no method bodies provided}; all the actual behavior comes from other modules that are just hooked up here.
+\end{itemize*}
+
+That seems like a lot of things that the \verb!RfmToLeds! module doesn't do. So what \textit{does} it do? Well, for starters, it declares three components: \verb!Main!, \verb!RfmToInt!, and \verb!IntToLeds!. The \verb!Main! component must be declared in every module, as its \verb!StdControl! interface is used to start and stop the app as a whole. The other two components each translate integers from one place to another; \verb!RfmToInt! moves an integer from a network message to a standard integer representation, and \verb!IntToLeds! takes that integer and displays its least significant three bits on the mote's LEDs.
+
+Together, it's pretty obvious how we can hook these components up to transform an integer from a network message into mote lights: just connect the \verb!RfmToInt! and \verb!IntToLeds! components. That's the core of the \verb!RfmToLeds! module: it bridges the integer transition from network to LEDs. After that hookup (the last line in the \verb!implementation! block), we just assign the \verb!StdControl! interfaces from \verb!Main! to each of the subcomponents so that all components start and stop together, and we're done.
+
+Next, we turn to the CountSend program:
+
+\begin{minted}{nesc}
+configuration CntToLedsAndRfm {
+}
+implementation {
+    components Main, Counter, IntToLeds, IntToRfm, TimerC;
+
+    Main.StdControl -> Counter.StdControl;
+    Main.StdControl -> IntToLeds.StdControl;
+    Main.StdControl -> IntToRfm.StdControl;
+    Main.StdControl -> TimerC.StdControl;
+    Counter.Timer -> TimerC.Timer[unique("Timer")];
+    IntToLeds <- Counter.IntOutput;
+    Counter.IntOutput -> IntToRfm;
+}
+\end{minted}
+
+What's going on here? We declare some similar components (\verb!IntToLeds!, \verb!IntToRfm!) and some new ones (\verb!Counter!, \verb!TimerC!). Then, after the standard \verb!StdControl! hookups, we get into the interesting part:
+
+\begin{itemize*}
+\item We assign the \verb!Counter! module a timer gotten from the \verb!TimerC! module. Don't worry about the specifics of \verb!unique("Timer")! for now.
+\item We assign the output of \verb!Counter.IntOutput! to both the \verb!IntToLeds! and \verb!IntToRfm! modules, using slightly different syntax each time; this sends any integer that the counter counts to both the local LEDs and over the network.
+\end{itemize*}
+
+\question{2} What line in the CountReceive program actually connects network input to LED output?
+
+\question{2} What would happen in CountSend if we removed the line \verb!IntToLeds <- Counter.IntOutput;!?
+
+\question{2} What would happen in CountSend if we removed the line \verb!Counter.IntOutput -> IntToRfm;!?
+
+\subsection*{Digging Deeper: Counter}
+
+At this point, we've seen two complete programs that, between them, don't have a single line of what we'd recognize as ``traditional'' executable code -- neither CountSend nor CountReceive actually defined a C-style method body anywhere. Though this is traditional for a large portion of nesC modules, we will have to figure out those methods at some point. To that end, let's take a look at the Counter module referenced from CountSend, one piece at a time.
+
+The Counter module is defined in the \verb!Counters.nc! file and is shipped with the TinyOS libraries included with MoteWorks. Move to the counters library directory and open the Counters module by typing in Cygwin:
+
+\begin{verbatim}
+$ cd /opt/MoteWorks/tos/lib/Counters
+$ vim Counters.nc
+\end{verbatim}
+
+(If you haven't used \verb!vim! before, don't worry; it's just a command-line text editor you can use from Cygwin. Navigate a document with the arrow keys, and quit when you're done by typing colon-Q (\verb!:q!) and hitting Enter.)
+
+Let's examine this file top-to-bottom. After all the authorship and copyright information, we come across the module declaration:
+
+\begin{minted}{nesc}
+module Counter {
+    provides {
+        interface StdControl;
+    }
+    uses {
+        interface Timer;
+        interface IntOutput;
+    }
+}
+\end{minted}
+
+Here we see the first instance of a module actually exposing interfaces to the outside world: the Counter module depends on three other modules, namely StdControl, Timer, and IntOutput. Notice the one key difference, however, in how those interfaces are exposed: some are \textbf{provided}, while others are \textbf{used}. The distinction between the two is a little subtle:
+
+\begin{itemize*}
+\item Interfaces that are \textbf{provided} need to provide method bodies for \textit{commands declared} in those interfaces
+\item Interfaces that are \textbf{used} need to provide method bodies for \textit{events raised} from those interfaces
+\end{itemize*}
+
+In this case, our Counter module needs to provide method bodies for all the commands declared in the StdControl interface, and respond to events that Timer and IntOutput raise. An interface can declare both commands and events, and the distinction is a little like input and output: commands are issued through an interface (input), and an event is raised from an interface (output).
+
+Looking more at counter, we see:
+
+\begin{minted}{nesc}
+implementation {
+    int state;
+
+    // ...
+}
+\end{minted}
+
+
+This is just a C-style declaration of a private variable. Namespacing and variable scope in nesC work quite like they do in C, where curly braces indicate logical blocks, and variables are scoped to the block where they're declared and all child blocks.
+
+\begin{minted}{nesc}
+implementation {
+    // ...
+
+    command result_t StdControl.init() {
+        state = 1;
+        return SUCCESS;
+    }
+
+    command result_t StdControl.start() {
+        return call Timer.start(TIMER_REPEAT, 250);
+    }
+
+    command result_t StdControl.stop() {
+        return call Timer.stop();
+    }
+
+    // ...
+}
+\end{minted}
+
+Here we see the implementation of all the commands that can be called from the StdControl interface (remember how we always hook up StdControl from Main to other modules?). The three commands will generally be called in the order they're shown: \verb!init()! happens at program initialization, \verb!start()! at execution, and \verb!stop()! at shutdown. So what's happening in each body?
+
+\begin{itemize*}
+\item In \verb!init()!, we set the private variable \verb!state! to 1 and return \verb!SUCCESS! -- the initialization process finished successfully.
+\item In \verb!start()!, we simply start the Timer associated with this Counter. (This hookup is done from the top-level module -- in our case, CntToLedsAndRfm from the CountSend project.)
+\item In \verb!stop()!, we stop the Timer for this Counter.
+\end{itemize*}
+
+We see here that the implementation of some of these methods relies on the Timer interface being connected from whatever module is using this Counter; as such, we can infer that a Counter needs a Timer to function properly (and in fact, not hooking up this interface will result in a compile-time warning).
+
+Now that we have our StdControl methods implemented, what's next? There's no mention of counting yet.
+
+\begin{minted}{nesc}
+implementation {
+    // ...
+
+    event result_t Timer.fired() {
+        if (call IntOutput.output(state))
+            state++;
+        return SUCCESS;
+    }
+    
+    event result_t IntOutput.outputComplete(result_t success) {
+        if(success == 0) state --;
+        return SUCCESS;
+    }
+}
+\end{minted}
+
+We end the Counter implementation block with method bodies for all the events from the Timer and IntOutput interfaces. The implementation should be fairly self-explanatory: when the timer fires, we output the \verb!state! (counter) variable through the IntOutput interface, then increment it. When we receive notification that the IntOutput module is done outputting its integer, we simply check that the output succeeded. If it didn't (i.e. the output of \verb!state! to whatever other module failed), we decrement \verb!state! so that the next output call will try the same integer again.
+
+There are a couple important syntax issues to note here, starting with the \verb!result_t! type. Every method body we've provided uses this type for return values, and in almost every case we return \verb!SUCCESS! -- this is an indicator that the method, either a command or an event, was successful. \verb!result_t! can be platform-specific, but is generally an 8-bit integer with \verb!SUCCESS=1! and \verb!FAIL=0!.
+
+The next big issue is the syntax for triggering other commands or events. Unlike regular C method calls (where you just need the name of the method), issuing commands in nesC uses the \verb!call! keyword. The entire phrase \verb!call Module.method(args)! is treated as a single syntactical block, returning a single value (generally of type \verb!result_t!).
+
+Finally, different method bodies are prefixed with not only the return type (\verb!result_t! again), but also with an annotation declaring whether they are a \verb!command! or \verb!event! implementation. Recall that the former is for interfaces \textbf{provided}, and the latter is for interfaces \textbf{used} -- this difference influences a large part of nesC design, including component hookups.
+
+\question{2} Explain, in your own words, the difference between providing and using an interface, and how the difference affects data flow into and out of a component.
+
+\question{2} Consider the snippet \verb!if(success == 0)!. Would you change anything about this condition? If so, how would you change it?
+
+\question{2} The IntOutput interface declares both a \verb!output()! command and a \verb!outputComplete()! event. Why do we need both? In what circumstances might the event not indicate success?
+
+\question{2} What do you think might happen if the IntOutput interface were not connected from another module?
+
+\task{20}{Extending Counter}
+
+Now that we've gone through the Counter module and have some idea of how to count, let's go one step further and change Counter so that it counts by some arbitrary integer $n$, rather than just by one every time. Create a new folder called \verb!AddSend! and copy the file \verb!Counter.nc! to this folder; rename the file \verb!NCounter.nc!.
+
+The goal for our new NCounter module is to provide a reusable module that will count by a predefined increment within a given range. To define this range and the counter step, we need three things: a \textbf{start} position, a \textbf{stop} position, and a \textbf{step}. Let's define those now in the \verb!NCounter.nc! file. Open it up in your favorite text editor, and add to the top of the file (below the copyright info):
+
+\begin{minted}{nesc}
+#define NCOUNTER_START 0
+#define NCOUNTER_STOP 8
+#define NCOUNTER_STEP 1
+#define _NCOUNTER_RANGE (NCOUNTER_STOP - NCOUNTER_START)
+\end{minted}
+
+This defines our three parameters, plus one bonus that we'll use later in counting computation: the ``range'' of the counter, or the span covered by the start and stop positions. Note that this range covers the start position but not the stop position.
+
+Now we're in a position to implement the core algorithm for the NCounter module. This borrows a bit from modular arithmetic; don't worry if you don't understand this algorithm right away. Add two methods in the implementation block:
+
+\begin{minted}{nesc}
+int next(int x) {
+    return (x + NCOUNTER_STEP - NCOUNTER_START) % _NCOUNTER_RANGE + NCOUNTER_START;
+}
+int prev(int x) {
+    return (x - NCOUNTER_STEP - NCOUNTER_START) % _NCOUNTER_RANGE + NCOUNTER_START;
+}
+\end{minted}
+
+These methods let us easily get the next or previous value for our counter, much like the simple increment or decrement did in the original Counter module. Note that these are neither commands nor events, but just simple C-style functions; you can use these at any point to simplify some repeated computations without exposing additional interfaces. Now, let's integrate these into the remainder of NCounter. Make the following replacements:
+
+\begin{itemize*}
+\item Replace \verb!state++! with \verb!state = next(state)!
+\item Replace \verb!state--! with \verb!state = prev(state)!
+\end{itemize*}
+
+These should each only occur once in the file. With these changes, the NCounter module will now count by the value of \verb!NCOUNTER_STEP! within the range we define, rather than up by one every time.
+
+\task{10}{Build and Test NCounter}
+
+At this point, we've adjusted the Counter module so that it's configurable in both the range and step size. The plan from here is to adjust the CountSend app to use this revised NCounter and observe how we can change that app's behavior.
+
+Your \verb!NCounter.nc! file should be in a folder called AddSend, as instructed earlier; at this point, copy all the files (not including the \verb!build! directory) from the CountSend app into the AddSend folder. You need to guarantee a couple conditions about your AddSend project before it will build:
+
+\begin{itemize*}
+\item It needs to, at the very least, have the following files:
+\begin{itemize*}
+\item \verb!CntToLedsAndRfm.nc!
+\item \verb!NCounter.nc!
+\item \verb!Makefile!
+\item \verb!Makefile.component!
+\end{itemize*}
+\item It must be at the same relative depth as the original CountSend folder. For example, a valid path for the AddSend folder would be:
+
+\begin{verbatim}
+/opt/MoteWorks/apps/custom/AddSend
+\end{verbatim}
+\end{itemize*}
+
+After the folder is placed in the right location, we need to inform the make system that the current folder has bonus code files (i.e. \verb!NCounter.nc!) that need to be integrated into the project. Edit the file \verb!Makefile! and add the following line after the first two includes:
+
+\begin{verbatim}
+INCLUDES += -I.
+\end{verbatim}
+
+This will import the current folder (called \verb!.!) into the compilation instructions.
+
+Finally, we just need to modify the vanilla CntToLedsAndRfm module to use NCounter instead of the system-provided Counter. Simply edit the \verb!CntToLedsAndRfm.nc! file and replace ``Counter'' with ``NCounter'' wherever it appears.
+
+Once these edits are done, you should have a complete nesC application ready for building! Run the standard command to build and install the app onto your mote:
+
+\begin{verbatim}
+$ make iris install,0 mib520,com3
+\end{verbatim}
+
+You should see the same pattern of lights appear, since our \verb!#define! statements continue to increment the count by 1 up to 8. Feel free to experiment with the step and stop variables defined in the \verb!NCounter.nc! file; after recompiling and installing on the mote, you should be able to produce different light patterns. (Recall that only the lowest three bits of any number will be shown, so increasing your variables too high will usually give undesired results.)
+
+\question{2} What combination of start, stop, and step values blink only the red LED on and off?
+
+\question{2} What combination of start, stop, and step values blink the yellow and green LEDs in a cycle?
+
+\question{2} Do you think the AddSend app will work with CountReceive? (Try it now if you're unsure.)
+
+\task{30}{AddSend's Sibling: AddReceive}
+
+If you ran CountReceive for the previous question, you noticed that AddSend works just like CountSend in terms of radio communication: it has CountReceive match its pattern of lights. But what happens if we use multiple motes running AddSend? Try it yourself now: run AddSend on two motes and CountReceive on a third.
+
+You should notice CountReceive flickering rapidly between the two AddSend motes' values -- it has no memory built in, so it just displays the most recent value it receives over the air. In this task, we'll add a buffer that stores two integer values, and only displays the logical or of those two values on its LEDs.
+
+The outline of this module, OrBuffer, is as follows:
+
+\begin{minted}{nesc}
+module OrBuffer {
+    provides interface IntOutput as IntInput;
+    uses interface IntOutput;
+}
+implementation {
+    // Your code here
+}
+\end{minted}
+
+To build AddReceive, you'll complete the method bodies required by the IntOutput interfaces. You should think about the following issues:
+
+\begin{enumerate}
+\item How will you store the two integers being buffered? Remember that nesC lets you declare local variables inside the implementation block in the same way C does.
+\item The IntOutput interface being provided requires that you give a full method body for the following signature:
+
+\begin{minted}{nesc}
+command result_t IntInput.output(uint16_t value);
+\end{minted}
+
+This method is called whenever our OrBuffer module receives input. (An interesting language artifact to note here is the use of the \verb!as! keyword in the interface declaration; since we do both integer input and output in this module, we rename one instance of IntOutput to IntInput to denote its use.)
+
+\item The IntOutput interface being used must respond to the event:
+
+\begin{minted}{nesc}
+event result_t IntOutput.outputComplete(result_t success);
+\end{minted}
+
+This method is called whenever output finishes to the OrBuffer's connected module. (It can largely be a no-op.)
+
+\item The RfmToLeds module (copied from the CountReceive app) will need to import the new OrBuffer component, then have connections defined for both its IntInput and IntOutput interfaces.
+
+\item Don't forget to modify your Makefile to update the \verb!INCLUDES! variable for your AddReceive build process.
+\end{enumerate}
+
+Once you've fully implemented the AddReceive app, install it on a mote and run it concurrently with two instances of AddSend. You should see a form of ``memory'' appear in the receiving module, where its output state reflects both of the integers transmitted from the other two motes. (For best effect, use different step and stop parameters in the AddSend motes.)
+
+\question{2} What type should you use for portable integer storage in the implementation of OrBuffer? (Hint: it appears at least once in the IntOutput interface method signatures.)
+
+\question{2} Explain, in your own words, why we rename one instance of the IntOutput interface in OrBuffer, and what effect it has on the overall AddReceive implementation.
+
+\question{2} How much time did you expect to spend on this lab? How much time did you actually spend on this lab, in total?
+
+\input{../common/turnin}
+
+\subsection*{Revision History}
+\begin{itemize*}
+\item April 11-16, 2012: Lab written by Tim Ekl
+\end{itemize*}
+
+\end{document}

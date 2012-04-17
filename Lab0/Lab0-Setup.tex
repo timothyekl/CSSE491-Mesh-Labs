@@ -1,0 +1,130 @@
+\documentclass{article}
+
+\newcommand{\labduedate}{at the end of Week 1}
+
+\input{../common/header}
+
+\pagestyle{fancy}
+\headheight 24pt
+\begin{document}
+
+\chead{\textcolor{Gray}{CSSE491 -- Mesh Networking}}
+\headsep = 24pt
+
+\begin{center}
+{ \large
+\textbf{Lab \labnumber: \longproductname} \\
+\textbf{Setup}
+}
+\end{center}
+
+\subsection*{Objective}
+By the end of this lab, you should have a full working copy of the MoteWorks software installed in a Windows XP virtual machine. With this software, you should be able to compile and run the Blink sample program on an Iris mote.
+
+\subsection*{Lab format}
+This lab guides you through the steps required to install MoteWorks and run the Blink application; very little individual or original work is required. You are, however, asked to answer several questions throughout the installation progress. These questions serve both to get information back to your instructor about your MoteWorks environment and to check your progress through the lab.
+
+\subsection*{Required materials}
+For this lab, you will need:
+
+\begin{itemize*}
+\item A working copy of Windows XP SP3. This can be in a virtualized environment if you prefer; \href{https://www.virtualbox.org/}{VirtualBox} is a free virtual machine manager that works quite well for this and subsequent labs.
+\item The \href{http://www.memsic.com/support/documentation/wireless-sensor-networks/category/9-software-downloads.html}{MoteWorks 2.0f r21 installer}
+\item The \href{http://www.cygwin.com/}{Cygwin 1.7 installer}
+\end{itemize*}
+
+With these materials, the entire lab should take approximately one hour to complete.
+
+\subsection*{Grading rubric}
+\begin{tabular}{p{5.5in} r}
+  % TODO: Where are points coming from in this lab? (Usually this is the last section filled in, as it must be listed and totalled manually.)
+\end{tabular}
+
+\subsection*{Due date}
+The lab is due \textcolor{red}{\textbf{\labduedate}}.
+
+\input{../common/turnin}
+
+\subsection*{Pre-lab questions}
+Before you begin, please answer the following questions:
+
+\begin{itemize*}
+\item \question{2} How are you running Windows XP? Common choices are natively as your primary OS, natively in a dual- or tri-boot setup, or in a virtual machine. If it is either of the last two, please indicate your primary OS and your virtual machine manager, as applicable. \\
+\item \question{2} Have you had any prior experience with the C programming language? If so, how much? \\
+\item \question{2} Have you had any prior experience with Bash or a similar shell environment (zsh, csh, ksh, etc.)? If so, how much?
+\end{itemize*}
+
+Once you have answered these questions, you may begin the setup process.
+
+\task{5}{Install MoteWorks}
+
+To begin, unzip the downloaded MoteWorks installer and run the contained executable. This is the primary MoteWorks installer; follow it all the way through as you would a normal installer. Take note of the following caveats, in order:
+
+\begin{itemize*}
+\item At the component selection screen, \textit{do not} change any component choices; you will likely not need the Enterprise CVS tools, and all other options are needed for the MoteWorks system and course work.
+\item You will see a number of errors related to Cygwin and \verb!bash.exe! during this installation. This is expected; dismiss them.
+\item Several components will launch installers of their own. Follow through these as well, accepting all defaults, and choose not to launch any installed programs immediately after their respective installers complete. (One program may launch anyway; close it.)
+\end{itemize*}
+
+The MoteWorks installer has created most of the shell of a working installation at this point; however, for unknown reasons, the core Cygwin environment is not unpacked entirely. (This is what lead to the second bullet point above.) As such, we must install Cygwin, then reconfigure MoteWorks atop the newly minted Cygwin setup.
+
+\task{5}{Install Cygwin}
+
+Run the Cygwin installer for version 1.7 or newer. Though most Cygwin installations will pull packages from the Internet, we deliberately do not; instead, we will use only package sources expanded by the MoteWorks installer. Your Cygwin setup executable should detect the existing half-broken Cygwin environment. Follow the installer through, continuing to accept all defaults. Take note:
+
+\begin{itemize*}
+\item \textit{Do not} select an Internet-based installation at the first screen; allow Cygwin to install only from local files.
+\item Accept all defaults for file locations and install directories; MoteWorks requires these not be changed.
+\item Ensure all packages are selected when given the option.
+\end{itemize*}
+
+Once the Cygwin installer completes, do not yet launch a Cygwin shell. We are still missing a number of MoteWorks components that failed the first time around.
+
+\task{5}{Install MoteWorks... Again}
+
+This should seem familiar: run the MoteWorks installer again. Again leave all the default components selected. This time, you should be prompted with a new screen, near the beginning of the installation, asking about Cygwin environments. Allow MoteWorks to ``upgrade'' the existing Cygwin installation.
+
+As you watch the installer work (and click through its subinstallers), you should see a number of Command Prompt windows appear with text-based progress bars. This is the installation progress of the Cygwin environment that failed in Step 1. Allow these to complete.
+
+\task{10}{Test Your Install}
+
+Note: At this point, we will begin showing snippets of commands that you will need to type at a Cygwin shell. These snippets will be in \verb!monospace font! and prefixed with a dollar sign (\verb!$!). You should not type the dollar sign explicitly; this sign indicates that it is a Cygwin command. Later code snippets will depend on this to distinguish between Cygwin shell commands and excerpts of C or C-like code.
+
+In order to test that your MoteWorks installation was successful, you will need the MIB520CA control board with a mote attached, and the USB cable to connect it to your XP machine. Ensure that the packaged Crossbow CD is in the drive, then attach the USB cable. \textit{Note: If you are on a virtual machine, you will need to pass both of these devices through -- CD and USB -- to the machine.}
+
+Once attached, your XP machine should detect the board and begin prompting you to install software. Do not connect to Windows Update for any drivers; instead, skip to the installation type screen, then allow the wizard to install drivers automatically. They should be pulled either from Windows or the Crossbow CD. You should be prompted for two driver installations in total.
+
+After the drivers are installed, open a Cygwin prompt and navigate to the MoteWorks Blink app sample folder:
+
+\begin{verbatim}
+$ cd /opt/MoteWorks/apps/general/Blink
+\end{verbatim}
+
+This folder contains the sample application we will flash to the mote to test your installation and interface. Execute the following command:
+
+\begin{verbatim}
+$ make iris install,0 mib520,com3
+\end{verbatim}
+
+You should see some compilation messages, followed by chip detection and byte-setting messages. You will know you are successful if you see the message \verb!Uploading: flash! on the screen, and if the red LED on the mote starts flashing once a second. If it does not, or you receive errors, check that:
+
+\begin{itemize*}
+\item The COM port you are using (provided by the USB driver) is actually COM3; in some instances, it may be different. You can check in the Device Manager.
+\item You are using a MIB520 board with a IRIS mote. This was the hardware provided to the author for the course; yours may differ.
+\end{itemize*}
+
+You may also need to reboot your XP machine or reconnect the mote (or both). Once you have a blinking red LED, you're done! Please answer the following questions before turning in the lab:
+
+\begin{itemize*}
+\item \question{2} Explain, in your own words, what the \verb!cd! command does in a Cygwin shell.
+\item \question{2} Explain, in your own words, what the above \verb!make! command does with a MoteWorks application.
+\end{itemize*}
+
+\input{../common/turnin}
+
+\subsection*{Revision History}
+\begin{itemize*}
+ \item Wed Apr 11 12:51:09 EDT 2012: Lab written by Tim Ekl
+\end{itemize*}
+
+\end{document}
