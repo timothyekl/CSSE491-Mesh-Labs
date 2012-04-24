@@ -1,0 +1,156 @@
+\documentclass{article}
+
+\newcommand{\labduedate}{at the end of Week 3}
+
+\input{../common/header}
+
+\pagestyle{fancy}
+\headheight 24pt
+\begin{document}
+
+\chead{\textcolor{Gray}{CSSE491 -- Mesh Networking Lab Assignment}}
+\headsep = 24pt
+
+\begin{center}
+{ \large
+\textbf{Lab \labnumber: \longproductname} \\
+\textbf{Sensing}
+}
+\end{center}
+
+\subsection*{Objective}
+This lab will begin introducing the concept of data gathering over mesh networks. This is one of the major applications in modern mesh networking -- the ability to retrieve data from a large number of low-power sensor nodes distributed over a wide space. By the end of the lab, you should have a basic understanding of MoteView and the sensor data being gathered from our motes.
+
+\subsection*{Lab format}
+The lab is primarily guided; it serves mostly as instructional material for students learning to gather data with MoteView. Like the previous lab, however, it is interspersed with comprehension questions and has some minor individual components.
+
+\subsection*{Required materials}
+For this lab, you will need:
+
+\begin{itemize*}
+\item The configured Windows XP SP3 system from Lab 0
+\item A MIB520 control board
+\item At least two IRIS motes, each with its own MDA100CB sensor board.
+\end{itemize*}
+
+(Note that if you successfully completed Lab 1, the only new material here is the sensor board; these should have been distributed with your motes.)
+
+\subsection*{Grading rubric}
+\begin{tabular}{p{5.5in} r}
+Task 1 is worth \textbf{5} points & $1 \times 5 = 5$ \\
+Tasks 2 and 3 are worth \textbf{20} points each & $2 \times 20 = 40$ \\
+Questions 1-5 are worth \textbf{4} points each & $5 \times 4 = 20$ \\ \hline
+& \textbf{65} points
+\end{tabular}
+
+\subsection*{Due date}
+The lab is due \textcolor{red}{\textbf{\labduedate}}.
+
+\input{../common/turnin}
+
+\task{5}{Setup: XMeshBase}
+
+When dealing with collecting sensor data, we have to broad types of nodes: those which are acting as sensors (and actively taking measurements), and those nodes which are relaying data to a central point. In this particular case (given the size of networks we have), the later category contains exactly one node: the one that will remain connected to the MIB520 control board.
+
+This one node, the ``control'' node, will be responsible for communicating directly (via the MIB520) with the MoteView program. As such, it needs a program that will allow it to communicate over the bus the MIB520 provides; we have such a program, called XMeshBase. Open a Cygwin shell and move into the XMeshBase application folder:
+
+\begin{verbatim}
+$ cd /opt/MoteWorks/apps/xmesh/XMeshBase
+\end{verbatim}
+
+Now, as usual, make the program and install it to an IRIS mote. Make sure the mote's ID is set to 0:
+
+\begin{verbatim}
+$ make iris install,0 mib520,com3
+\end{verbatim}
+
+Once the board is programmed, it should only show a minimal progress indicator, in the form of a slowly flashing green LED; that's fine. We're more interested in its communications with MoteView.
+
+\task{20}{Getting Started With MoteView}
+
+So far, we've only worked with apps on the motes in the context of node-to-node communication; we haven't dealt at all with getting any data back to a usable place on any computers. MoteView changes that: it's the application whose job it is to communicate with external motes and handle data from mote applications.
+
+It's a bit of a finicky program, though, so be careful when working within MoteView. To get it up and running with your motes, do the following:
+
+\begin{enumerate*}
+\item Make sure you have your MIB520 control board plugged in to your XP machine before beginning. MoteView may crash if it doesn't detect the right hardware.
+\item Put the node running XMeshBase on the control board; make sure you can see its green status LED flash.
+\item Launch MoteView. It will take a few seconds to boot up completely.
+\item Click the first button in the upper left on the toolbar; it should have the alt-text ``Connect to WSN.''
+\item On the Mode tab, select Live Data acquisition from a Local source.
+\item On the Gateway tab, specify that you're working with a MIB520 control board (or other as applicable). Be sure to specify \textit{the second of your two serial ports} when prompted; MoteView doesn't use the standard serial port that we've been using to program mote apps, but instead uses the second port to do more in-depth communication with the motes. Leave the baud rate at 57600.
+\item Upon clicking ``Next,'' MoteView will skip the Database tab. That's fine; select the Application Name that matches your sensor board version. For example, with MDA100 boards, you would select the XMDA100 application.
+\item When you click ``Done,'' MoteView will close the window and have a flurry of activity in its main window. When that settles down, do three things:
+\begin{enumerate*}
+\item Make sure the ``LIVE'' box is checked, and
+\item In the Settings \textrightarrow General \textrightarrow Heartbeat menu, select ``Display All,'' and
+\item Click the ``Start XServe'' button on the far right side of the top toolbar.
+\end{enumerate*}
+\end{enumerate*}
+
+If all goes well, you should see some messages similar to this appear in your MoteView console:
+
+\begin{verbatim}
+[2012/04/22 08:46:26] 7E 00 FD 7D 02 93 00  [7]
+[MV]: Heartbeat received
+\end{verbatim}
+
+This message will repeat about once a second, in sync with the green light on the XMeshBase application's toggling. This ``heartbeat'' message is a sort of regular check-in from the XMeshBase mote up to MoteView; it indicates continued health of the mote network and communication between MoteView and your mote.
+
+\task{20}{Start Gathering Data}
+
+Now that we have a base node talking with MoteView, let's take a look at what kind of data we can collect. The MDA100CB sensor boards have two major sensors on them: \textit{temperature} and \textit{light}. We'll be collecting data for both of these.
+
+First, however, we need to program another mote. Stop XServe in MoteView (you should see the heartbeat messages stop) and unplug the control mote. Next, attach a MDA100CB sensor board to the port on another (different) mote, then plug that assembly -- board and mote -- into the MIB520 control board. We'll be programming an app that makes use of the sensor board, so it needs to be attached to the mote before installation.
+
+The app we'll be programming varies with the control board you have. The course standard is, as mentioned, the MDA100CB; prefix this name with ``X'' to get the app name in the \verb!xmesh! folder. Move into that directory and install the app using (for example):
+
+\begin{verbatim}
+$ cd /opt/MoteWorks/apps/xmesh/XMDA100CB
+$ make iris install,1 mib520,com3
+\end{verbatim}
+
+Note again that we're incrementing the node ID. This becomes critically important at this point and for future applications, since the XMesh protocol we're working with depends on unique node IDs to route messages properly. Future nodes should also increment their node numbers.
+
+Now that the XMDA100CB app is programmed, detach the mote/sensor assembly and reattach the base mote to the control board. At this point, it's important to understand the distinction between the two motes and their apps:
+
+\begin{itemize*}
+\item The \textbf{base mote}, attached to the MIB520 control board, serves as a \textit{bridge between the mesh network and MoteView}. Its job is not to collect data (and it has no sensor board); instead, it receives data packets from throughout the network, coordinates traffic, and hands information up to our XP machine.
+\item The \textbf{sensor mote(s)}, using the MDA100CB sensor board, make up the body of the mesh network. They gather data and relay it to their peers to eventually reach the base mote. Note that these motes can actually relay data between each other, allowing you to extend the mesh network almost arbitrarily by adding more motes.
+\end{itemize*}
+
+The next step is to see the mesh network in action. Make sure that your base mote is attached to the control board and restart XServe in MoteView; you should begin seeing heartbeat messages again. (If not, stop now and figure out why.)
+
+Next, put some batteries in the sensor mote that you programmed with XMDA100CB and turn it on. If all goes well, you'll see... nothing. What's happening here?
+
+It turns out that new motes need up to a couple minutes to connect to the mesh network. Watch the console with your heartbeat messages, and after a few minutes (and a couple dozen heartbeats), you should start seeing data flow over the network. Verify that MoteView can see your node's information by clicking on the Health tab and checking for a new data entry with the node ID you used to program XMDA100CB.
+
+At this point, we're almost done -- MoteView is aware of our two-node mesh network, and it's gathering health data from all the remote motes. But what about the sensor data? As it happens, MoteView by default chooses the wrong data table to display to users, hiding the valuable data it's gathering. To select the right table, do the following:
+
+\begin{itemize*}
+\item Stop XServe
+\item Re-enter the Connect to WSN window and move to the Sensor Board tab
+\item Ensure that the ``Database Table Name'' drop-down menu has \verb!xbw_da100_results! selected; if necessary, check the ``View Alternate Table'' box and select the table yourself.
+\item Click ``Done'' and restart XServe.
+\end{itemize*}
+
+At this point, if you wait a few minutes for your network to reestablish itself, you should see data start showing up in the Data tab. Each unique node ID gets its own row in this table, and you'll see the most recent value displayed for each sensor on your node. After you verify this data is updating (the values may change only slightly), you're all set! You've constructed a functioning mesh network. Have an instructor or TA verify your work, then please answer the following questions.
+
+\question{4} What information can you glean about your sensor mote from the Health tab? What do you think the \verb!health_pkts!, \verb!node_pkts!, and \verb!dropped! columns mean?
+
+\question{4} What information does the Data tab give you? What do you think the purpose of the ADC columns (\verb!adc2! -- \verb!adc6!) are? (You may need to look up the definition and function of ADC.)
+
+\question{4} Open the Topology tab and drag some of the gray circles around. What information does this tab give you? How might this be useful in a larger deployment?
+
+\question{4} Set up a third mote with a sensor board and the XMDA100CB app, then establish a three-node network. Are there any notable differences in how this new mote attaches to the mesh network or the data it generates?
+
+\question{4} Try to influence the data and health values on the motes. What's the highest value you can get in the \verb!light! column for a mote? Can you affect the dropped-packet percentage at all? Can you influence the topology of the network? Explore the different tabs and write a short paragraph about what effects you can have on the state of your network. (Be careful not to damage the motes or sensor boards in your experimentation!)
+
+\input{../common/turnin}
+
+\subsection*{Revision History}
+\begin{itemize*}
+ \item Fri Apr 20 00:22:12 EDT 2012: Lab created with template generator
+\end{itemize*}
+
+\end{document}
